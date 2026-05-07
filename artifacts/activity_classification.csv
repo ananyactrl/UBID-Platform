@@ -13,8 +13,8 @@ UBID-000011,ACTIVE,Recent event recency score is above 0.5.,0.8559,1,1.0,2026-04
 UBID-000012,ACTIVE,Recent event recency score is above 0.5.,0.8703,1,1.0,2026-04-10,,560005,1071,Bakery,1 non-closure events in 2026; last event 2026-04-10,1
 UBID-000013,CLOSED,No current-year activity and last event is older than 730 days.,0.0956,0,1.0,2023-12-30,,560005,1071,Bakery,0 non-closure events in 2026; last event 2023-12-30,1
 UBID-000014,ACTIVE,Recent event recency score is above 0.5.,0.946,4,1.0,2026-04-30,,560005,1071,Bakery,4 non-closure events in 2026; last event 2026-04-30,1
-UBID-000015,ACTIVE,Recent event recency score is above 0.5.,1.0,7,3.5,2026-05-05,,560006,4711,Retail,7 non-closure events in 2026; last event 2026-05-05,3
-UBID-000016,DORMANT,Activity exists but is below active threshold for its cohort.,0.1102,0,3.5,2025-04-03,,560006,4711,Retail,0 non-closure events in 2026; last event 2025-04-03,1
+UBID-000015,ACTIVE,Recent event recency score is above 0.5.,1.0,7,4.0,2026-05-05,,560006,4711,Retail,7 non-closure events in 2026; last event 2026-05-05,3
+UBID-000016,ACTIVE,Recent event recency score is above 0.5.,1.0,1,4.0,2026-05-05,,560006,4711,Retail,1 non-closure events in 2026; last event 2026-05-05,1
 UBID-000017,ACTIVE,Recent event recency score is above 0.5.,0.88,2,4.0,2026-04-12,,560007,2599,Fabrication,2 non-closure events in 2026; last event 2026-04-12,2
 UBID-000018,ACTIVE,Recent event recency score is above 0.5.,1.0,6,4.0,2026-05-05,,560007,2599,Fabrication,6 non-closure events in 2026; last event 2026-05-05,2
 UBID-000019,ACTIVE,Recent event recency score is above 0.5.,1.0,2,3.5,2026-05-05,,560008,5510,Lodging,2 non-closure events in 2026; last event 2026-05-05,3
