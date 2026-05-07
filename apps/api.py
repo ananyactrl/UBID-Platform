@@ -171,6 +171,7 @@ def get_reviewer_queue():
 
 # ── /api/confidence ───────────────────────────────────────────────────────────
 @app.get("/api/confidence")
+@app.get("/api/link-decisions")
 def get_confidence():
     df = read_artifact("link_decisions")
     if df.empty:

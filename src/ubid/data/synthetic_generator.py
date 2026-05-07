@@ -8,6 +8,25 @@ import pandas as pd
 
 DEPARTMENTS = ["shops", "factories", "pollution", "electricity"]
 CITIES = ["Bengaluru", "Mysuru", "Hubballi", "Mangaluru", "Belagavi"]
+
+# Approximate city centres (lat, lon) for Karnataka cities
+CITY_COORDS: dict[str, tuple[float, float]] = {
+    "Bengaluru": (12.9716, 77.5946),
+    "Mysuru":    (12.2958, 76.6394),
+    "Hubballi":  (15.3647, 75.1240),
+    "Mangaluru": (12.9141, 74.8560),
+    "Belagavi":  (15.8497, 74.4977),
+}
+
+# Pincode → approximate (lat, lon) offset grid within each city
+# We derive a small jitter from the pincode so each business has a unique point
+def _latlon_for_record(city: str, pincode: str, rng: random.Random) -> tuple[float, float]:
+    base_lat, base_lon = CITY_COORDS.get(city, (12.9716, 77.5946))
+    # Deterministic jitter ±0.08 degrees (~9 km) based on pincode digits
+    pin_int = int(str(pincode).replace("", "0")[-4:] or "0")
+    lat_jitter = ((pin_int % 17) - 8) * 0.005 + rng.uniform(-0.003, 0.003)
+    lon_jitter = ((pin_int % 13) - 6) * 0.005 + rng.uniform(-0.003, 0.003)
+    return round(base_lat + lat_jitter, 5), round(base_lon + lon_jitter, 5)
 SECTORS = [
     ("1071", "Bakery"),
     ("4711", "Retail"),
@@ -173,6 +192,11 @@ def generate_synthetic_twins(
             if conflict and dept in {"factories", "pollution"}:
                 inspection_dates[0] = "2025-06-15"
 
+            lat, lon = _latlon_for_record(dept_city, pincode, rng)
+
+            # Fraud flag: conflict businesses with mismatched owner names are suspicious
+            is_suspicious = conflict and dept == "electricity"
+
             record = {
                 "source_department": dept,
                 "source_id": f"{dept[:3]}_{idx}",
@@ -186,6 +210,9 @@ def generate_synthetic_twins(
                 "nic_code": nic_code,
                 "industry_sector": sector_name,
                 "city": dept_city,
+                "lat": lat,
+                "lon": lon,
+                "suspicious": is_suspicious,
                 "inspection_dates": "|".join(inspection_dates),
                 "event_history": "|".join(_events_for_record(inspection_dates, dept, rng, closed, closure_date)),
                 "closure_date": closure_date.date().isoformat() if closure_date else "",
@@ -197,6 +224,8 @@ def generate_synthetic_twins(
                 dup["source_id"] = f"{dept[:3]}_{idx}_dup"
                 dup["name"] = _maybe_typo(dup["name"], rng, min(1.0, typo_rate + 0.25))
                 dup["address"] = _variant_address(idx, dept_city, rng, 1.0)
+                dup["lat"] = round(lat + rng.uniform(-0.001, 0.001), 5)
+                dup["lon"] = round(lon + rng.uniform(-0.001, 0.001), 5)
                 rows.append(dup)
 
     return pd.DataFrame(rows)

@@ -66,7 +66,16 @@ def build_reviewer_queue(linked_df: pd.DataFrame, decisions_df: pd.DataFrame | N
         veto_rows["right_department"] = ""
         veto_rows["confidence"] = veto_rows["link_confidence"]
         veto_rows["priority_score"] = 1.0
-        veto_rows["why_uncertain"] = veto_rows["veto_reason"]
+        def _humanise_veto(reason: str) -> str:
+            if "conflicting_owner_names" in reason:
+                return "Owner names differ across departments - possible identity conflict or data error"
+            if "same_day_far_cities" in reason:
+                return "Inspections recorded in distant cities on the same day - physically impossible"
+            if "activity_after_closure" in reason:
+                return "Business activity recorded after a closure event was filed"
+            return reason.replace("temporal_veto_", "").replace("_", " ").capitalize()
+
+        veto_rows["why_uncertain"] = veto_rows["veto_reason"].apply(_humanise_veto)
         veto_rows["reason"] = veto_rows["veto_reason"]
         veto_rows["match_summary"] = "Veto split this UBID and requires high-priority review."
         queue_parts.append(

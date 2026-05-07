@@ -23,6 +23,7 @@ def main() -> None:
         duplicate_rate=0.08,
         closure_rate=0.10,
         lag_strength=0.85,
+        conflict_rate=0.08,
     )
     linked_df, link_decisions = run_linking_pipeline(source_df)
     class_df = run_activity_classification(linked_df)

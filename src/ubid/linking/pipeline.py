@@ -275,17 +275,21 @@ def run_linking_pipeline(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         )
 
     id_to_ubid = {}
+    ubid_to_depts = defaultdict(set)
     for i, comp in enumerate(nx.connected_components(graph), start=1):
         ubid = f"UBID-{i:06d}"
         for source_id in comp:
             id_to_ubid[source_id] = ubid
+            ubid_to_depts[ubid].add(records[source_id]["source_department"])
 
     work["ubid"] = work["source_id"].map(id_to_ubid)
+    
     link_score_by_id = defaultdict(lambda: 0.5)
     for row in decision_rows:
         if row["decision"] == "AUTO_LINK":
             link_score_by_id[row["left_id"]] = max(link_score_by_id[row["left_id"]], row["confidence"])
             link_score_by_id[row["right_id"]] = max(link_score_by_id[row["right_id"]], row["confidence"])
+
     work["link_confidence"] = work["source_id"].map(link_score_by_id).astype(float)
 
     veto_df = _apply_temporal_veto(
@@ -294,6 +298,19 @@ def run_linking_pipeline(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     work = work.join(veto_df)
     work["ubid"] = work["final_ubid"]
     work = work.drop(columns=["final_ubid"])
+
+    # After veto, re-evaluate confidence
+    final_ubid_groups = work.groupby("ubid")
+    ubid_to_depts_final = {ubid: g["source_department"].nunique() for ubid, g in final_ubid_groups}
+
+    def final_confidence(row):
+        ubid = row["ubid"]
+        num_depts = ubid_to_depts_final.get(ubid, 1)
+        if num_depts > 1:
+            return row["link_confidence"]
+        return 0.5
+        
+    work["link_confidence"] = work.apply(final_confidence, axis=1)
 
     decisions = pd.DataFrame(decision_rows)
     return work, decisions
