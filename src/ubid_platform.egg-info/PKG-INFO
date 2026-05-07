@@ -1,0 +1,218 @@
+Metadata-Version: 2.4
+Name: ubid-platform
+Version: 0.1.0
+Summary: AI-powered cross-department business identity resolution and activity classification prototype for Karnataka.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: pandas
+Requires-Dist: numpy
+Requires-Dist: streamlit
+Requires-Dist: rapidfuzz
+Requires-Dist: jellyfish
+Requires-Dist: networkx
+Requires-Dist: scikit-learn
+Requires-Dist: sqlalchemy
+Requires-Dist: psycopg2-binary
+Requires-Dist: python-dotenv
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Provides-Extra: matching
+Requires-Dist: splink; extra == "matching"
+
+# UBID Platform
+
+AI-powered cross-department Business Identity Resolution and Activity Classification prototype for Karnataka.
+
+The platform reads department datasets without modifying source systems, links duplicate business records into one Unique Business Identifier (UBID), and classifies each real-world business as `ACTIVE`, `DORMANT`, or `CLOSED` with explainable evidence.
+
+## Why This Matters
+
+Karnataka has many departments that maintain their own business lists: Shops and Establishments, Factories, Pollution Control, Electricity, Fire Safety, and others. The same business can appear as:
+
+- `M/s Ganesh Bakery`
+- `Ganesh Bakery Pvt Ltd`
+- `Sri Ganesh Bakers`
+
+Without a shared identifier, teams cannot confidently know whether these records describe one business, whether it is currently active, or which department record is stale.
+
+## What Makes This Prototype Different
+
+### 1. Behavioural Fingerprint Matching
+
+The matcher does not rely only on PAN, GSTIN, name, and address. It also compares inspection date patterns. If a Factory inspection and a Pollution inspection repeatedly occur two days apart across multiple cycles, the match receives a behavioural confidence boost.
+
+### 2. Cohort-Based Activity Classification
+
+The activity classifier does not call a business dormant just because it has few events. It compares the business against similar businesses in the same `pincode + industry` cohort. This avoids penalising low-frequency businesses during slow seasons or in sectors with naturally sparse filings.
+
+### 3. Temporal Consistency Veto
+
+After graph propagation creates UBIDs, safety checks split suspicious components and send them to review:
+
+- same-day inspections in far-apart cities
+- activity after a closure event
+- conflicting owner names
+
+### 4. Synthetic Twin Generator
+
+The data generator creates realistic synthetic cross-department records with configurable typos, missing PAN/GSTIN, address variation, duplicate records, inspection lag patterns, closure events, and veto conflicts. No real PII is required for demo or calibration.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A["Synthetic or Department CSVs"] --> B["Normalize Names, Addresses, PINs"]
+    B --> C["Blocking by PAN, GSTIN, Name+PIN, Phonetic+PIN"]
+    C --> D["Weighted Fellegi-Sunter Style Scoring"]
+    D --> E["Behavioural Inspection-Lag Boost"]
+    E --> F["Decision Thresholds"]
+    F --> G["Auto-Link Graph Components"]
+    G --> H["Temporal Consistency Veto"]
+    H --> I["Linked UBID Artifacts"]
+    I --> J["Event + Cohort Activity Classifier"]
+    I --> K["Reviewer Dashboard"]
+    J --> K
+    I --> L["Business Self-Service Portal"]
+```
+
+## Repository Layout
+
+```text
+apps/
+  dashboard.py          Reviewer dashboard
+  portal.py             Business self-service portal
+scripts/
+  run_pipeline.py       Generates data, links records, classifies activity, writes artifacts
+src/ubid/
+  data/                 Synthetic Twin Generator
+  linking/              Normalization, blocking, scoring, graph propagation, veto
+  classification/       Event recency and cohort activity classification
+  reviewer/             Prioritized reviewer queue
+  storage/              CSV artifact persistence
+tests/
+  test_smoke.py         Smoke and core behaviour tests
+artifacts/
+  *.csv                 Generated demo outputs
+```
+
+## Quick Start
+
+Use Python 3.10 or newer.
+
+```bash
+python -m venv .venv
+```
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python scripts\run_pipeline.py
+```
+
+Linux/macOS:
+
+```bash
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python scripts/run_pipeline.py
+```
+
+The pipeline writes:
+
+- `artifacts/synthetic_source.csv`
+- `artifacts/linked_records.csv`
+- `artifacts/link_decisions.csv`
+- `artifacts/activity_classification.csv`
+- `artifacts/reviewer_queue.csv`
+
+## Run the Apps
+
+Reviewer dashboard:
+
+```bash
+streamlit run apps/dashboard.py
+```
+
+Business portal:
+
+```bash
+streamlit run apps/portal.py --server.port 8602
+```
+
+Default URLs:
+
+- Reviewer Dashboard: <http://localhost:8601>
+- Business Portal: <http://localhost:8602>
+
+## Docker
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+- <http://localhost:8601>
+- <http://localhost:8602>
+
+## Demo Script
+
+1. Run `python scripts/run_pipeline.py`.
+2. Open the reviewer dashboard.
+3. Show the KPI row: source records, resolved UBIDs, auto-links, review pairs, and veto flags.
+4. Open the Confidence tab and explain the thresholds:
+   - `>= 0.95`: auto-link
+   - `0.70 to 0.95`: reviewer queue
+   - `< 0.70`: keep separate
+5. Open the Reviewer Queue tab and show a case where behavioural inspection lag helped a weak identifier match.
+6. Open the Lineage tab and show all source records under one UBID.
+7. Open the Activity tab and explain one `ACTIVE`, one `DORMANT`, and one `CLOSED` case using the evidence timeline.
+8. Open the Business Portal, look up a UBID by PAN/GSTIN, and submit a wrong-merge or closure feedback request.
+
+## Sample Data Explanation
+
+The generated source records include:
+
+- `source_department`: source system such as shops, factories, pollution, electricity
+- `source_id`: source-system record identifier
+- `business_key`: hidden synthetic ground-truth key for calibration
+- `name`, `address`, `pincode`, `pan`, `gstin`, `owner_name`
+- `inspection_dates`: department-specific inspection cycles
+- `event_history`: stream-like events used for activity classification
+- `closure_date`: optional synthetic closure signal
+
+The linked output adds:
+
+- `ubid`: resolved Unique Business Identifier
+- `link_confidence`: best auto-link confidence attached to that source record
+- `veto_applied` and `veto_reason`: safety checks that split suspicious UBID components
+
+The classifier output adds:
+
+- `classification`: `ACTIVE`, `DORMANT`, or `CLOSED`
+- `recency_score`: half-life weighted event score
+- `cohort_median`: median events for the same `pincode + nic_code`
+- `classification_reason`
+- `evidence_timeline`
+
+## Tests
+
+```bash
+pytest -q
+```
+
+The tests cover:
+
+- end-to-end pipeline smoke test
+- behavioural lag boost detection
+- temporal veto split
+- event and cohort-based classification
+- reviewer queue prioritization
+
+## Prototype Scope
+
+This is a hackathon prototype. It uses CSV artifact storage for simplicity, while keeping the code organized so PostgreSQL, department connectors, OTP providers, and production reviewer workflows can be added later.

@@ -1,0 +1,16 @@
+pandas
+numpy
+streamlit
+rapidfuzz
+jellyfish
+networkx
+scikit-learn
+sqlalchemy
+psycopg2-binary
+python-dotenv
+
+[dev]
+pytest
+
+[matching]
+splink

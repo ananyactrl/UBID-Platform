@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: ubid-app
+    ports:
+      - "8601:8601"
+    environment:
+      - UBID_DB_URL=sqlite:///ubid.db
+    volumes:
+      - ./:/app
+    command: streamlit run apps/dashboard.py --server.address=0.0.0.0 --server.port=8601
+
+  portal:
+    build: .
+    container_name: ubid-portal
+    ports:
+      - "8602:8602"
+    environment:
+      - UBID_DB_URL=sqlite:///ubid.db
+    volumes:
+      - ./:/app
+    command: streamlit run apps/portal.py --server.address=0.0.0.0 --server.port=8602
