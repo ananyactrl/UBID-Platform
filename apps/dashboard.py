@@ -59,9 +59,9 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
 with tab1:
     st.subheader("Resolved Business Records")
     filters = st.columns(3)
-    department  = filters[0].selectbox("Department", ["All"] + sorted(linked_df["source_department"].dropna().unique()))
-    city        = filters[1].selectbox("City",       ["All"] + sorted(linked_df["city"].dropna().unique()))
-    veto_filter = filters[2].selectbox("Veto status", ["All", "Vetoed", "Clean"])
+    department  = filters[0].selectbox("Department", ["All"] + sorted(linked_df["source_department"].dropna().unique()), key="res_dept")
+    city        = filters[1].selectbox("City",       ["All"] + sorted(linked_df["city"].dropna().unique()), key="res_city")
+    veto_filter = filters[2].selectbox("Veto status", ["All", "Vetoed", "Clean"], key="res_veto")
 
     view = linked_df.copy()
     if department != "All":
@@ -121,6 +121,7 @@ with tab2:
         map_dept = col_f2.selectbox(
             "Department",
             ["All"] + sorted(map_df["source_department"].dropna().unique()),
+            key="map_dept",
         )
 
         map_view = map_df[map_df["classification"].isin(map_status)]
@@ -170,7 +171,7 @@ with tab3:
                 + " <-> "
                 + ambiguous_pairs["right_id"].astype(str)
             )
-            selected_pair = st.selectbox("Select pair to review", options=pair_labels)
+            selected_pair = st.selectbox("Select pair to review", options=pair_labels, key="queue_pair")
             left_id_sel  = selected_pair.split(" <-> ")[0].strip()
             right_id_sel = selected_pair.split(" <-> ")[1].strip()
 
@@ -241,7 +242,7 @@ with tab4:
 # ══════════════════════════════════════════════════════════════════════════════
 with tab5:
     st.subheader("UBID Lineage / Audit Trail")
-    selected_ubid = st.selectbox("Select UBID", sorted(linked_df["ubid"].unique()))
+    selected_ubid = st.selectbox("Select UBID", sorted(linked_df["ubid"].unique()), key="lineage_ubid")
     lineage = linked_df[linked_df["ubid"] == selected_ubid].copy()
     st.dataframe(
         lineage[[
